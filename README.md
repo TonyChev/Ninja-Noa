@@ -28,7 +28,14 @@ Un jeu éducatif pour réviser **tout le programme de CM2** avec **Maître Kuro*
 ## Lancer le jeu
 
 - **Le plus simple** : ouvrir `index.html` dans Chrome, Edge, Safari ou Firefox.
-- **En ligne, sur tablette ou téléphone** : activer GitHub Pages (*Settings → Pages → Deploy from branch*), puis ouvrir l'adresse donnée et faire « Ajouter à l'écran d'accueil ».
+- **En ligne avec GitHub Pages** :
+  1. Sur GitHub, ouvrir le dépôt, puis **Settings → Pages**.
+  2. Dans *Build and deployment* → *Source*, choisir **Deploy from a branch**.
+  3. Dans *Branch*, choisir la branche du jeu et le dossier **/ (root)**, puis **Save**.
+  4. Après 1 à 2 minutes, le jeu est en ligne à l'adresse **https://tonychev.github.io/Ninja-Noah/**.
+  5. Sur la tablette ou le téléphone, ouvrir cette adresse puis faire « Ajouter à l'écran d'accueil ».
+
+  La progression est enregistrée dans le navigateur de chaque appareil, rattachée à cette adresse. Pour changer d'appareil, utiliser l'export et l'import de sauvegarde (⚙️).
 - **En local avec un serveur** : `python3 -m http.server`, puis aller sur http://localhost:8000.
 
 ## Organisation du code
