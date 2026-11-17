@@ -21,8 +21,8 @@ Un jeu éducatif pour réviser **tout le programme de CM2** avec **Maître Kuro*
   - **32 coupes et exploits** 🏆 : une coupe et une coupe d'or par dojo, les séries de jours, les combos, le Grand Maître du CM2…
 - **Défi du Sensei** : un défi quotidien de 10 questions mélangées, avec un bonus d'XP.
 - **Voix ninja** : Maître Kuro encourage l'enfant avec une voix grave, grâce à la synthèse vocale du navigateur. Il peut aussi lire les questions à voix haute. La voix, la hauteur et la vitesse se règlent.
-- **Comptes** : plusieurs profils possibles, chacun avec un code secret à 4 chiffres facultatif. La progression est enregistrée automatiquement. On peut **exporter et importer une sauvegarde** sous forme de fichier ou de code à copier, pour la garder en sécurité ou changer d'appareil.
-- **Espace parents** : débloquer toutes les missions, gérer le code secret, supprimer un compte. Si le code est oublié, une « question pour un parent » permet de le retirer.
+- **Un seul joueur, Noa** : au premier lancement, Noa choisit la couleur de son bandeau. Ensuite, le jeu s'ouvre directement sur sa partie. La progression est enregistrée automatiquement sur le téléphone. On peut **exporter et importer une sauvegarde** sous forme de fichier ou de code à copier, pour la garder en sécurité ou changer de téléphone.
+- **Espace parents** (⚙️) : débloquer toutes les missions, changer la couleur du bandeau, tout recommencer à zéro (protégé par une « question pour un parent »).
 - Le jeu s'installe comme une application (PWA) et **fonctionne hors connexion** après la première visite.
 
 ## Lancer le jeu
@@ -35,7 +35,7 @@ Un jeu éducatif pour réviser **tout le programme de CM2** avec **Maître Kuro*
   4. Après 1 à 2 minutes, le jeu est en ligne à l'adresse **https://tonychev.github.io/Ninja-Noah/**.
   5. Sur la tablette ou le téléphone, ouvrir cette adresse puis faire « Ajouter à l'écran d'accueil ».
 
-  La progression est enregistrée dans le navigateur de chaque appareil, rattachée à cette adresse. Pour changer d'appareil, utiliser l'export et l'import de sauvegarde (⚙️).
+  La progression est enregistrée dans le navigateur du téléphone, rattachée à cette adresse. Pour changer de téléphone, utiliser l'export et l'import de sauvegarde (⚙️).
 - **En local avec un serveur** : `python3 -m http.server`, puis aller sur http://localhost:8000.
 
 ## Organisation du code

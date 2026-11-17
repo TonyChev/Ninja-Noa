@@ -19,12 +19,13 @@ const App = {
       if (e.key === 'Enter' && this.screen === 'quiz' && this.quiz && this.quiz.locked) { e.preventDefault(); nextQuestion(); }
     });
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => { });
-    this.go('login');
+    const profs = Object.values(this.db.profiles).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    if (profs.length) this.login(profs[0]); else this.go('welcome');
   },
   go(screen, arg) {
     if (screen !== 'quiz') Voice.stop();
     this.screen = screen;
-    (Screens[screen] || Screens.login)(arg);
+    (Screens[screen] || Screens.home)(arg);
     window.scrollTo(0, 0);
   },
   save() {
@@ -35,6 +36,7 @@ const App = {
     if (!Store.save(this.db)) toast('⚠️ Impossible d\'enregistrer sur cet appareil (navigation privée ?). Pense à exporter ta sauvegarde.', 5000);
   },
   login(p, isNew) {
+    p.name = 'Noa';
     this.p = p;
     this.applySettings();
     const t = U.today();
@@ -85,7 +87,7 @@ function avatar(p, size = 'sm', mood = 'normal') {
 function topbar(back) {
   const p = App.p, b = beltFor(p.xp);
   return `<header class="topbar">
-    ${back ? `<button class="icon-btn" data-go="${back}" aria-label="Retour">←</button>` : `<button class="avatar-btn" data-go="account" aria-label="Mon compte">${avatar(p)}</button>`}
+    ${back ? `<button class="icon-btn" data-go="${back}" aria-label="Retour">←</button>` : `<button class="avatar-btn" data-go="account" aria-label="Paramètres">${avatar(p)}</button>`}
     <div class="tb-info">
       <div class="tb-name">${U.esc(p.name)} <span class="belt-chip" style="--belt:${b.color}">Ceinture ${b.name}</span></div>
       <div class="xpbar"><i style="width:${b.pct}%"></i></div>
@@ -112,87 +114,29 @@ function makeQuestions(mission, n = QUIZ_LEN) {
 
 /* ---------- Écrans ---------- */
 const Screens = {
-  login() {
-    App.p = null;
-    const list = Object.values(App.db.profiles).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  welcome() {
+    let color = COLORS[0];
     render(`<div class="screen login">
       <div class="brand"><div class="logo-star">✦</div><h1>Ninja <span>Noa</span></h1><p>Le dojo secret du CM2</p></div>
-      <div class="hero-mascot">${mascotSVG({ color: '#e63946' })}</div>
-      <div class="bubble">${list.length ? 'Qui vient s\'entraîner aujourd\'hui ?' : 'Bienvenue, jeune ninja ! Crée ton compte pour commencer.'}</div>
-      <div class="profiles">
-        ${list.map(p => `<button class="profile-card" data-id="${p.id}">${avatar(p, 'md')}<b>${U.esc(p.name)}</b><small>Ceinture ${beltFor(p.xp).name} ${p.pinHash ? '🔒' : ''}</small></button>`).join('')}
-        <button class="profile-card new" data-go="create"><span class="plus">+</span><b>Nouveau ninja</b><small>Créer un compte</small></button>
-      </div>
-      <button class="btn ghost small" id="imp">📥 Importer une sauvegarde</button>
-      <p class="foot">Les progrès sont enregistrés sur cet appareil. Pense à exporter ta sauvegarde (⚙️) pour la garder en sécurité.</p>
-    </div>`);
-    on('.profile-card[data-id]', 'click', e => {
-      Sfx.play('click');
-      const p = App.db.profiles[e.currentTarget.dataset.id];
-      if (p.pinHash) App.go('pin', p.id); else App.login(p);
-    });
-    on('#imp', 'click', importDialog);
-  },
-
-  create() {
-    let color = COLORS[0];
-    render(`<div class="screen create">
-      <button class="icon-btn back" data-go="login">←</button>
-      <h2>Nouveau ninja</h2>
-      <div class="preview" id="prev">${mascotSVG({ color })}</div>
-      <label>Ton nom de ninja<input id="name" maxlength="16" placeholder="ex : Noa" value="${Object.keys(App.db.profiles).length ? '' : 'Noa'}" autocomplete="off"></label>
-      <label>Couleur de ton bandeau</label>
+      <div class="hero-mascot" id="prev">${mascotSVG({ color, mood: 'happy' })}</div>
+      <div class="bubble">Bienvenue au dojo, Noa ! Je suis Maître Kuro, ton sensei. Choisis la couleur de ton bandeau :</div>
       <div class="colors">${COLORS.map((c, i) => `<button class="swatch ${i ? '' : 'on'}" data-c="${c}" style="background:${c}" aria-label="couleur"></button>`).join('')}</div>
-      <label>Code secret (4 chiffres, facultatif)<input id="pin" inputmode="numeric" maxlength="4" placeholder="Laisse vide pour ne pas en mettre" autocomplete="off"></label>
-      <button class="btn primary big" id="go">⚔️ Commencer l'aventure</button>
+      <div class="start-wrap"><button class="btn primary big" id="go">⚔️ Commencer l'aventure</button></div>
+      <button class="btn ghost small" id="imp">📥 J'ai déjà une sauvegarde</button>
     </div>`);
     on('.swatch', 'click', e => {
       color = e.currentTarget.dataset.c;
-      $app.querySelectorAll('.swatch').forEach(s => s.classList.toggle('on', s === e.currentTarget));
+      $app.querySelectorAll('.swatch').forEach(x => x.classList.toggle('on', x === e.currentTarget));
       document.getElementById('prev').innerHTML = mascotSVG({ color, mood: 'happy' });
       Sfx.play('swoosh');
     });
     on('#go', 'click', () => {
-      const name = document.getElementById('name').value.trim();
-      const pin = document.getElementById('pin').value.trim();
-      if (!name) return toast('Écris ton nom de ninja !');
-      if (pin && !/^\d{4}$/.test(pin)) return toast('Le code secret doit avoir 4 chiffres.');
-      const p = Store.newProfile(name, color, pin || null);
-      App.db.profiles[p.id] = p;
-      App.p = p; App.applySettings();
+      const p = Store.newProfile('Noa', color, null);
+      App.db.profiles = { [p.id]: p };
       Sfx.play('gong');
       App.login(p, true);
     });
-  },
-
-  pin(id) {
-    const p = App.db.profiles[id]; let code = '';
-    render(`<div class="screen pin">
-      <button class="icon-btn back" data-go="login">←</button>
-      ${avatar(p, 'lg')}
-      <h2>${U.esc(p.name)}</h2><p>Entre ton code secret</p>
-      <div class="dots">${'<i></i>'.repeat(4)}</div>
-      <div class="pad">${[1, 2, 3, 4, 5, 6, 7, 8, 9, '', 0, '⌫'].map(k => k === '' ? '<span></span>' : `<button data-k="${k}">${k}</button>`).join('')}</div>
-      <button class="link" id="forgot">Code oublié ?</button>
-    </div>`);
-    const dots = () => $app.querySelectorAll('.dots i').forEach((d, i) => d.classList.toggle('on', i < code.length));
-    on('.pad button', 'click', e => {
-      const k = e.currentTarget.dataset.k; Sfx.play('click');
-      if (k === '⌫') code = code.slice(0, -1); else if (code.length < 4) code += k;
-      dots();
-      if (code.length === 4) {
-        if (Store.hash(code, p.id) === p.pinHash) { Sfx.play('swoosh'); App.login(p); }
-        else { Sfx.play('wrong'); $app.querySelector('.dots').classList.add('shake'); setTimeout(() => { code = ''; dots(); $app.querySelector('.dots').classList.remove('shake'); }, 500); }
-      }
-    });
-    on('#forgot', 'click', () => {
-      const a = U.rand(12, 29), b = U.rand(12, 29);
-      const m = modal(`<h3>Question pour un parent 👨‍👩‍👧</h3><p>Pour supprimer le code secret, calcule <b>${a} × ${b}</b> :</p><input id="pa" inputmode="numeric"><div class="row"><button class="btn ghost" data-close>Annuler</button><button class="btn primary" id="ok">Valider</button></div>`);
-      m.querySelector('#ok').onclick = () => {
-        if (Number(m.querySelector('#pa').value) === a * b) { p.pinHash = null; m.remove(); toast('Code secret supprimé.'); App.login(p); }
-        else toast('Ce n\'est pas la bonne réponse.');
-      };
-    });
+    on('#imp', 'click', importDialog);
   },
 
   home(arg) {
@@ -302,7 +246,8 @@ const Screens = {
       <h3 class="section">👨‍👩‍👧 Espace parents</h3>
       <div class="card settings">
         <label class="switch"><input type="checkbox" id="s-unlock" ${s.unlockAll ? 'checked' : ''}><span></span> Débloquer toutes les missions</label>
-        <button class="btn ghost" id="pinbtn">🔒 ${p.pinHash ? 'Changer / retirer le code secret' : 'Ajouter un code secret'}</button>
+        <label>Couleur du bandeau</label>
+        <div class="colors left">${COLORS.map(c => `<button class="swatch ${c === p.color ? 'on' : ''}" data-c="${c}" style="background:${c}" aria-label="couleur"></button>`).join('')}</div>
       </div>
       <h3 class="section">💾 Sauvegarde</h3>
       <div class="card settings">
@@ -312,8 +257,7 @@ const Screens = {
         <button class="btn ghost" id="imp">📥 Importer une sauvegarde</button>
       </div>
       <div class="row wrap">
-        <button class="btn ghost" data-go="login">🚪 Changer de ninja</button>
-        <button class="btn danger" id="del">🗑️ Supprimer ce compte</button>
+        <button class="btn danger" id="del">🗑️ Tout recommencer à zéro</button>
       </div>
     </div>`);
     const upd = (k, v) => { p.settings[k] = v; App.applySettings(); App.save(); };
@@ -324,7 +268,7 @@ const Screens = {
     on('#s-vname', 'change', e => upd('voiceName', e.target.value));
     on('#s-pitch', 'change', e => upd('pitch', Number(e.target.value)));
     on('#s-rate', 'change', e => upd('rate', Number(e.target.value)));
-    on('#s-test', 'click', () => Voice.say(`Hai ! Je suis Maître Kuro, le sensei de ${p.name}. Prêt pour l'entraînement ?`, { force: true }));
+    on('#s-test', 'click', () => Voice.say(`Hai ! Je suis Maître Kuro, le sensei de Noa. Prêt pour l'entraînement ?`, { force: true }));
     on('#exp', 'click', () => {
       Store.download(`ninja-noa-${p.name.replace(/[^\w-]/g, '')}-${U.today()}.json`, Store.exportData(p));
       toast('📤 Sauvegarde téléchargée !');
@@ -334,17 +278,15 @@ const Screens = {
       m.querySelector('#cp').onclick = () => { const ta = m.querySelector('textarea'); ta.select(); try { navigator.clipboard.writeText(ta.value); } catch (e) { document.execCommand('copy'); } toast('Code copié !'); };
     });
     on('#imp', 'click', importDialog);
-    on('#pinbtn', 'click', () => {
-      const m = modal(`<h3>🔒 Code secret</h3><p class="small">4 chiffres. Laisse vide pour retirer le code.</p><input id="np" inputmode="numeric" maxlength="4"><div class="row"><button class="btn ghost" data-close>Annuler</button><button class="btn primary" id="ok">Enregistrer</button></div>`);
+    on('.swatch', 'click', e => { p.color = e.currentTarget.dataset.c; App.save(); Sfx.play('swoosh'); App.go('account'); });
+    on('#del', 'click', () => {
+      const a = U.rand(12, 29), b = U.rand(12, 29);
+      const m = modal(`<h3>⚠️ Tout recommencer</h3><p>Toute la progression de Noa (XP, ceintures, médailles, coupes) sera effacée.<br><small>Astuce : télécharge d'abord une sauvegarde.</small></p><p>Question pour un parent : combien font <b>${a} × ${b}</b> ?</p><input id="pa" inputmode="numeric"><div class="row"><button class="btn ghost" data-close>Annuler</button><button class="btn danger" id="ok">Effacer</button></div>`);
       m.querySelector('#ok').onclick = () => {
-        const v = m.querySelector('#np').value.trim();
-        if (v && !/^\d{4}$/.test(v)) return toast('4 chiffres, s\'il te plaît.');
-        p.pinHash = v ? Store.hash(v, p.id) : null; App.save(); m.remove(); toast(v ? 'Code enregistré.' : 'Code retiré.'); App.go('account');
+        if (Number(m.querySelector('#pa').value) !== a * b) return toast('Ce n\'est pas la bonne réponse.');
+        App.db.profiles = {}; App.p = null; Store.save(App.db); m.remove(); toast('Progression effacée.'); App.go('welcome');
       };
     });
-    on('#del', 'click', () => confirmBox(`Supprimer définitivement le compte de <b>${U.esc(p.name)}</b> et toute sa progression ?<br><small>Astuce : exporte d'abord une sauvegarde.</small>`, 'Supprimer', () => {
-      delete App.db.profiles[p.id]; App.p = null; Store.save(App.db); toast('Compte supprimé.'); App.go('login');
-    }));
   }
 };
 
@@ -358,9 +300,9 @@ function importDialog() {
   const doImport = text => {
     let prof;
     try { prof = Store.parseImport(text); } catch (e) { return toast('❌ Sauvegarde invalide.'); }
-    const finish = () => { App.db.profiles[prof.id] = prof; Store.save(App.db); m.remove(); toast(`✅ Ninja « ${U.esc(prof.name)} » importé !`); App.go('login'); };
-    const ex = App.db.profiles[prof.id];
-    if (ex) confirmBox(`Un compte « ${U.esc(ex.name)} » existe déjà (${ex.xp} XP). Le remplacer par la sauvegarde (${prof.xp} XP) ?`, 'Remplacer', finish);
+    const finish = () => { prof.name = 'Noa'; App.db.profiles = { [prof.id]: prof }; Store.save(App.db); m.remove(); toast('✅ Sauvegarde importée !'); App.login(prof); };
+    const cur = Object.values(App.db.profiles)[0];
+    if (cur) confirmBox(`Remplacer la progression actuelle (${cur.xp} XP) par celle de la sauvegarde (${prof.xp} XP) ?`, 'Remplacer', finish);
     else finish();
   };
   m.querySelector('#ok').onclick = () => {

@@ -1,5 +1,5 @@
 /* Service worker : permet de jouer hors connexion */
-const CACHE = 'ninja-noa-v1';
+const CACHE = 'ninja-noa-v2';
 const FILES = ['./', 'index.html', 'manifest.json', 'css/style.css', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png',
   'js/util.js', 'js/content/maths.js', 'js/content/francais.js', 'js/content/histoire.js', 'js/content/geographie.js',
   'js/content/sciences.js', 'js/content/anglais.js', 'js/storage.js', 'js/voice.js', 'js/rewards.js', 'js/mascot.js', 'js/app.js'];
